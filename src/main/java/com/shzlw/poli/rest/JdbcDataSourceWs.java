@@ -2,6 +2,7 @@ package com.shzlw.poli.rest;
 
 import com.shzlw.poli.dao.ComponentDao;
 import com.shzlw.poli.dao.JdbcDataSourceDao;
+import com.shzlw.poli.dao.SavedQueryDao;
 import com.shzlw.poli.dto.Table;
 import com.shzlw.poli.model.JdbcDataSource;
 import com.shzlw.poli.service.JdbcDataSourceService;
@@ -17,7 +18,7 @@ import javax.sql.DataSource;
 import java.util.List;
 
 @RestController
-@RequestMapping("/ws/jdbcdatasource")
+@RequestMapping("/ws/jdbcdatasources")
 public class JdbcDataSourceWs {
 
     @Autowired
@@ -31,6 +32,9 @@ public class JdbcDataSourceWs {
 
     @Autowired
     ComponentDao componentDao;
+
+    @Autowired
+    SavedQueryDao savedQueryDao;
 
     @RequestMapping(method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     @Transactional(readOnly = true)
@@ -64,6 +68,7 @@ public class JdbcDataSourceWs {
     public ResponseEntity<?> delete(@PathVariable("id") long id) {
         jdbcDataSourceService.removeFromCache(id);
         componentDao.updateByDataSourceId(id);
+        savedQueryDao.clearDataSourceId(id);
         jdbcDataSourceDao.delete(id);
         return new ResponseEntity<String>(HttpStatus.NO_CONTENT);
     }
@@ -71,8 +76,9 @@ public class JdbcDataSourceWs {
     @RequestMapping(value = "/ping/{id}", method = RequestMethod.GET)
     @Transactional(readOnly = true)
     public String ping(@PathVariable("id") long id) {
-        JdbcDataSource ds = jdbcDataSourceDao.findById(id);
-        return jdbcQueryService.ping(ds);
+        JdbcDataSource ds = jdbcDataSourceDao.findByIdWithNoCredentials(id);
+        DataSource dataSource = jdbcDataSourceService.getDataSource(id);
+        return jdbcQueryService.ping(dataSource, ds.getPing());
     }
 
     @RequestMapping(
@@ -81,7 +87,7 @@ public class JdbcDataSourceWs {
             produces = MediaType.APPLICATION_JSON_VALUE)
     @Transactional(readOnly = true)
     public List<Table> getSchema(@PathVariable("id") long id) {
-        JdbcDataSource ds = jdbcDataSourceDao.findById(id);
-        return jdbcQueryService.getSchema(ds);
+        DataSource dataSource = jdbcDataSourceService.getDataSource(id);
+        return jdbcQueryService.getSchema(dataSource);
     }
 }

@@ -1,7 +1,12 @@
 package com.shzlw.poli.rest;
 
+import com.shzlw.poli.dao.CannedReportDao;
+import com.shzlw.poli.dao.SharedReportDao;
 import com.shzlw.poli.dao.UserDao;
+import com.shzlw.poli.dao.UserFavouriteDao;
 import com.shzlw.poli.model.User;
+import com.shzlw.poli.model.UserAttribute;
+import com.shzlw.poli.service.SharedReportService;
 import com.shzlw.poli.service.UserService;
 import com.shzlw.poli.util.Constants;
 import org.slf4j.Logger;
@@ -18,7 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @RestController
-@RequestMapping("/ws/user")
+@RequestMapping("/ws/users")
 public class UserWs {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(UserWs.class);
@@ -28,6 +33,18 @@ public class UserWs {
 
     @Autowired
     UserService userService;
+
+    @Autowired
+    CannedReportDao cannedReportDao;
+
+    @Autowired
+    UserFavouriteDao userFavouriteDao;
+
+    @Autowired
+    SharedReportDao sharedReportDao;
+
+    @Autowired
+    SharedReportService sharedReportService;
 
     @RequestMapping(method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     @Transactional(readOnly = true)
@@ -51,6 +68,8 @@ public class UserWs {
         }
         List<Long> userGroups = userDao.findUserGroups(userId);
         user.setUserGroups(userGroups);
+        List<UserAttribute> userAttributes = userDao.findUserAttributes(userId);
+        user.setUserAttributes(userAttributes);
         return user;
     }
 
@@ -65,6 +84,7 @@ public class UserWs {
 
         long userId = userDao.insertUser(user.getUsername(), user.getName(), user.getTempPassword(), user.getSysRole());
         userDao.insertUserGroups(userId, user.getUserGroups());
+        userDao.insertUserAttributes(userId, user.getUserAttributes());
         return new ResponseEntity<Long>(userId, HttpStatus.CREATED);
     }
 
@@ -84,6 +104,8 @@ public class UserWs {
         userDao.updateUser(user);
         userDao.deleteUserGroups(userId);
         userDao.insertUserGroups(userId, user.getUserGroups());
+        userDao.deleteUserAttributes(userId);
+        userDao.insertUserAttributes(userId, user.getUserAttributes());
         return new ResponseEntity<String>(HttpStatus.OK);
     }
 
@@ -98,7 +120,11 @@ public class UserWs {
         }
 
         userService.invalidateSessionUserCache(savedUser.getSessionKey());
-
+        sharedReportService.invalidateSharedLinkInfoCacheByUserId(userId);
+        sharedReportDao.deleteByUserId(userId);
+        userFavouriteDao.deleteByUserId(userId);
+        cannedReportDao.deleteByUserId(userId);
+        userDao.deleteUserAttributes(userId);
         userDao.deleteUserGroups(userId);
         userDao.deleteUser(userId);
         return new ResponseEntity<String>(HttpStatus.NO_CONTENT);

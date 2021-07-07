@@ -4,7 +4,7 @@ public final class Constants {
 
     private Constants() {}
 
-    public static final String CURRENT_VERSION = "0.6.0";
+    public static final String CURRENT_VERSION = "0.12.2";
 
     public static final String SUCCESS = "success";
     public static final String GOOD = "";
@@ -15,6 +15,7 @@ public final class Constants {
 
     public static final String API_KEY_PREFIX = "apk_";
     public static final String SESSION_KEY_PREFIX = "sk_";
+    public static final String SHARE_KEY_PREFIX = "sha_";
 
     public static final String PASSWORD_SALT = "awesome";
 
@@ -23,6 +24,8 @@ public final class Constants {
 
     public static final String FILTER_TYPE_SLICER = "slicer";
     public static final String FILTER_TYPE_SINGLE = "single";
+    public static final String FILTER_TYPE_DATE_PICKER = "date picker";
+    public static final String FILTER_TYPE_USER_ATTRIBUTE = "user attribute";
 
     public static final String SLICER_SELECT_ALL = "select all";
     public static final String SLICER_SELECT_NONE = "select none";
@@ -44,8 +47,14 @@ public final class Constants {
     public static final String HTTP_METHOD_DELETE = "DELETE";
 
     public static final String HTTP_HEADER_API_KEY = "Poli-Api-Key";
+    public static final String HTTP_HEADER_SHARE_KEY = "Poli-Share-Key";
 
     public static final String ERROR_NO_DATA_SOURCE_FOUND = "No data source found";
     public static final String ERROR_EMPTY_SQL_QUERY = "SQL query cannot be empty";
 
+    public static final int QUERY_RESULT_NOLIMIT = 0;
+    public static final int MAXIMUM_QUERY_RECORDS_NOLIMIT = -1;
+
+    public static final String CONTENT_TYPE_JSON = "json";
+    public static final String CONTENT_TYPE_CSV = "csv";
 }

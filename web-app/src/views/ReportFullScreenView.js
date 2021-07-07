@@ -1,25 +1,17 @@
 
 import React from 'react';
-import ReportEditView from './ReportEditView';
+import ReportEditView from './Report/ReportEditView';
 
 class ReportFullScreenView extends React.Component {
 
-  constructor(props) {
-    super(props);
-    this.state = {
-    }
-  }
-
   render() {
-    const pathname = this.props.location.pathname;
-    const search = this.props.location.search;
-    const currentPath = pathname + search;
+    const href = window.location.href;
     
     return (
       <div className="full-screen-view">
-        <ReportEditView key={currentPath} />
+        <ReportEditView key={href} />
       </div>
-    )
+    );
   };
 }
 

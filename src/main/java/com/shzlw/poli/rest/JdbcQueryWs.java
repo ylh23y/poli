@@ -7,10 +7,11 @@ import com.shzlw.poli.dto.QueryResult;
 import com.shzlw.poli.model.Component;
 import com.shzlw.poli.model.Report;
 import com.shzlw.poli.model.User;
+import com.shzlw.poli.model.UserAttribute;
 import com.shzlw.poli.service.JdbcDataSourceService;
 import com.shzlw.poli.service.JdbcQueryService;
 import com.shzlw.poli.service.ReportService;
-import com.shzlw.poli.util.CommonUtil;
+import com.shzlw.poli.util.CommonUtils;
 import com.shzlw.poli.util.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,10 +22,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import javax.sql.DataSource;
-import java.io.IOException;
-import java.util.Date;
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -49,8 +48,10 @@ public class JdbcQueryWs {
     public QueryResult runQuery(@RequestBody QueryRequest queryRequest) {
         long dataSourceId = queryRequest.getJdbcDataSourceId();
         String sql = queryRequest.getSqlQuery();
+        int resultLimit = queryRequest.getResultLimit();
+
         DataSource dataSource = jdbcDataSourceService.getDataSource(dataSourceId);
-        QueryResult queryResult = jdbcQueryService.queryComponentByParams(dataSource, sql, null);
+        QueryResult queryResult = jdbcQueryService.queryByParams(dataSource, sql, null, resultLimit);
         return queryResult;
     }
 
@@ -72,7 +73,9 @@ public class JdbcQueryWs {
         if (isAccessValid) {
             String sql = component.getSqlQuery();
             DataSource dataSource = jdbcDataSourceService.getDataSource(component.getJdbcDataSourceId());
-            QueryResult queryResult = jdbcQueryService.queryComponentByParams(dataSource, sql, filterParams);
+            User user = (User) request.getAttribute(Constants.HTTP_REQUEST_ATTR_USER);
+            List<FilterParameter> newFilterParams = addUserAttributesToFilterParams(user.getUserAttributes(), filterParams);
+            QueryResult queryResult = jdbcQueryService.queryByParams(dataSource, sql, newFilterParams, Constants.QUERY_RESULT_NOLIMIT);
             return new ResponseEntity(queryResult, HttpStatus.OK);
         }
 
@@ -98,5 +101,28 @@ public class JdbcQueryWs {
             }
         }
         return isValid;
+    }
+
+    protected List<FilterParameter> addUserAttributesToFilterParams(List<UserAttribute> userAttributes, List<FilterParameter> filterParams) {
+        if (userAttributes == null || userAttributes.isEmpty()) {
+            return filterParams;
+        }
+
+        List<FilterParameter> newFilterParams = new ArrayList<>();
+        for (UserAttribute attr : userAttributes) {
+            // Transform every user attribute to a single value filter param.
+            FilterParameter param = new FilterParameter();
+            param.setType(Constants.FILTER_TYPE_USER_ATTRIBUTE);
+            // For example: $user_attr[division]
+            param.setParam(CommonUtils.getParamByAttrKey(attr.getAttrKey()));
+            param.setValue(attr.getAttrValue());
+            newFilterParams.add(param);
+        }
+
+        if (filterParams != null && !filterParams.isEmpty()) {
+            newFilterParams.addAll(filterParams);
+        }
+
+        return newFilterParams;
     }
 }

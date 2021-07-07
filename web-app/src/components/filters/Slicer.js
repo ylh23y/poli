@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
-import Checkbox from '../Checkbox';
+import Checkbox from '../Checkbox/Checkbox';
 import './Slicer.css';
 
 class Slicer extends React.Component {
@@ -17,7 +17,8 @@ class Slicer extends React.Component {
 
   static propTypes = {
     checkBoxes: PropTypes.array.isRequired,
-    onChange: PropTypes.func.isRequired
+    onChange: PropTypes.func.isRequired,
+    readOnly: PropTypes.bool
   };
 
   toggleSelectAll = () => {
@@ -51,6 +52,7 @@ class Slicer extends React.Component {
   render() {
     const { 
       checkBoxes = [],
+      readOnly = false
     } = this.props;
 
     const {
@@ -60,17 +62,20 @@ class Slicer extends React.Component {
 
     const checkBoxItems = [];
     for (let i = 0; i < checkBoxes.length; i++) {
-      const checkBox = checkBoxes[i];
-      const value = checkBox.value;
+      const { 
+        value,
+        isChecked 
+      } = checkBoxes[i];
       if (!searchValue || (searchValue && value.includes(searchValue))) {
         checkBoxItems.push(
           (
             <Checkbox 
-              key={i} 
-              name={checkBox.value} 
-              value={checkBox.value} 
-              checked={checkBox.isChecked} 
+              key={value} 
+              name={value} 
+              value={value} 
+              checked={isChecked} 
               onChange={this.handleCheckBoxChange} 
+              readOnly={readOnly}
             />
           )
         )

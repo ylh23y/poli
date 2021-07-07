@@ -2,9 +2,10 @@
 import React from 'react';
 import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { withTranslation } from 'react-i18next';
+import { toast } from 'react-toastify';
 
-import Toast from '../components/Toast';
-import Modal from '../components/Modal';
+import Modal from '../components/Modal/Modal';
 
 class Account extends React.Component {
 
@@ -34,7 +35,7 @@ class Account extends React.Component {
   }
 
   fetchUser = () => {
-    axios.get('/ws/user/account')
+    axios.get('/ws/users/account')
       .then(res => {
         const user = res.data;
         this.setState({
@@ -74,21 +75,21 @@ class Account extends React.Component {
 
     if (showUpdatePassword) {
       if (password !== confirmedPassword) {
-        Toast.showError(`Those passwords didn't match.`);
+        toast.error(`Those passwords didn't match.`);
         return;
       }  
 
       if (password.length < 8) {
-        Toast.showError(`Use 8 or more characters for password.`);
+        toast.error(`Use 8 or more characters for password.`);
         return;
       }
 
       user.password = password;
     }
 
-    axios.put('/ws/user/account', user)
+    axios.put('/ws/users/account', user)
       .then(res => {
-        Toast.showSuccess('Saved.');
+        toast.success('Saved.');
       });
   }
 
@@ -99,6 +100,8 @@ class Account extends React.Component {
   }
 
   render() {
+    const { t } = this.props;
+
     const {
       showUpdatePassword,
       username,
@@ -109,38 +112,39 @@ class Account extends React.Component {
     return (
       <div className="full-page-content">
         <div className="form-panel" style={{width: '400px'}}>   
-          <label className="bold">Username</label>
-          <div className="info-value">{username}</div>
+          <label>{t('Username')}</label>
+          <div className="form-input bg-grey">{username}</div>
 
-          <label className="bold">Name</label>
+          <label>{t('Name')}</label>
           <input 
             className="form-input"
             type="text"   
             name="name" 
             value={this.state.name}
             onChange={this.handleInputChange} />
+          <br/>
 
-          <label className="bold">System Role</label>
-          <div className="info-value">{sysRole}</div>
+          <label>{t('System Role')}</label>
+          <div className="form-input bg-grey">{sysRole}</div>
 
-          <label className="bold">API Key</label>
-          <div className="info-value">{apiKey}</div>
-          <button className="button mt-10 button-red" onClick={() => this.setState({ showGenerateApiKeyPanel: true })}>Generate new API Key</button>
+          <label>{t('API Key')}</label>
+          <div className="form-input bg-grey">{apiKey}</div>
+          <button className="button mt-10 button-red" onClick={() => this.setState({ showGenerateApiKeyPanel: true })}>{t('Generate new API Key')}</button>
           
           <hr />
 
-          <button className="button mt-3" onClick={this.toggleUpdatePassword}>Change password</button>
+          <button className="button mt-3" onClick={this.toggleUpdatePassword}>{t('Change Password')}</button>
           {
             showUpdatePassword && (
               <div style={{marginTop: '8px'}}>
-                <label>New Password</label>
+                <label>{t('New Password')}</label>
                 <input 
                   className="form-input"
                   type="password" 
                   name="password" 
                   value={this.state.password}
                   onChange={this.handleInputChange} />
-                <label>Confirm Password</label>
+                <label>{t('Confirm Password')}</label>
                 <input 
                   className="form-input"
                   type="password" 
@@ -152,7 +156,7 @@ class Account extends React.Component {
 
           <hr />
           <button className="button mt-10 button-green" onClick={this.save}>
-            <FontAwesomeIcon icon="save" size="lg" fixedWidth /> Save
+            <FontAwesomeIcon icon="save"  fixedWidth /> {t('Save')}
           </button>
         </div>
 
@@ -160,15 +164,15 @@ class Account extends React.Component {
           show={this.state.showGenerateApiKeyPanel}
           onClose={() => this.setState({ showGenerateApiKeyPanel: false })}
           modalClass={'small-modal-panel'}
-          title={'Confirm'} >
+          title={t('Confirm')} >
           <div className="confirm-deletion-panel">
-            Are you sure you want to generate a new Api Key?
+            {t('Are you sure you want to generate a new Api Key')}?
           </div>
-          <button className="button button-red full-width" onClick={this.generateApiKey}>Confirm</button>
+          <button className="button button-red full-width" onClick={this.generateApiKey}>{t('Confirm')}</button>
         </Modal>
       </div>
     )
   }
 }
 
-export default Account;
+export default (withTranslation()(Account));

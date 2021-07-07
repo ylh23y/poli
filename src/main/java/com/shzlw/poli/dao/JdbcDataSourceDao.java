@@ -1,20 +1,20 @@
 package com.shzlw.poli.dao;
 
 import com.shzlw.poli.model.JdbcDataSource;
-import com.shzlw.poli.util.PasswordUtil;
+import com.shzlw.poli.util.PasswordUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.List;
 
 @Repository
@@ -22,6 +22,9 @@ public class JdbcDataSourceDao {
 
     @Autowired
     JdbcTemplate jt;
+
+    @Autowired
+    NamedParameterJdbcTemplate npjt;
 
     public List<JdbcDataSource> findAllWithNoCredentials() {
         String sql = "SELECT id, name, connection_url, driver_class_name, username, ping FROM p_datasource";
@@ -48,20 +51,19 @@ public class JdbcDataSourceDao {
 
     public long insert(JdbcDataSource ds) {
         String rawPassword = ds.getPassword();
-        String encryptedPassword = PasswordUtil.getEncryptedPassword(rawPassword);
-        String sql = "INSERT INTO p_datasource(name, connection_url, driver_class_name, username, password, ping) VALUES(?, ?, ?, ?, ?, ?)";
-        KeyHolder keyHolder = new GeneratedKeyHolder();
-        jt.update(connection -> {
-            PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-            ps.setString(1, ds.getName());
-            ps.setString(2, ds.getConnectionUrl());
-            ps.setString(3, ds.getDriverClassName());
-            ps.setString(4, ds.getUsername());
-            ps.setString(5, encryptedPassword);
-            ps.setString(6, ds.getPing());
-            return ps;
-        }, keyHolder);
+        String encryptedPassword = PasswordUtils.getEncryptedPassword(rawPassword);
+        String sql = "INSERT INTO p_datasource(name, connection_url, driver_class_name, username, password, ping) "
+                    + "VALUES(:name, :connection_url, :driver_class_name, :username, :password, :ping)";
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue(JdbcDataSource.NAME, ds.getName());
+        params.addValue(JdbcDataSource.CONNECTION_URL, ds.getConnectionUrl());
+        params.addValue(JdbcDataSource.DRIVER_CLASS_NAME, ds.getDriverClassName());
+        params.addValue(JdbcDataSource.USERNAME, ds.getUsername());
+        params.addValue(JdbcDataSource.PASSWORD, encryptedPassword);
+        params.addValue(JdbcDataSource.PING, ds.getPing());
 
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        npjt.update(sql, params, keyHolder, new String[] { JdbcDataSource.ID});
         return keyHolder.getKey().longValue();
     }
 
@@ -78,7 +80,7 @@ public class JdbcDataSourceDao {
                     ds.getId()
             });
         } else {
-            String encryptedPassword = PasswordUtil.getEncryptedPassword(rawPassword);
+            String encryptedPassword = PasswordUtils.getEncryptedPassword(rawPassword);
             String sql = "UPDATE p_datasource SET name=?, connection_url=?, driver_class_name=?, username=?, password=?, ping=? WHERE id=?";
             return jt.update(sql, new Object[]{
                     ds.getName(),
@@ -121,7 +123,7 @@ public class JdbcDataSourceDao {
             ds.setDriverClassName(rs.getString(JdbcDataSource.DRIVER_CLASS_NAME));
             ds.setUsername(rs.getString(JdbcDataSource.USERNAME));
             String encryptedPassword = rs.getString(JdbcDataSource.PASSWORD);
-            String rawPassword = PasswordUtil.getDecryptedPassword(encryptedPassword);
+            String rawPassword = PasswordUtils.getDecryptedPassword(encryptedPassword);
             ds.setPassword(rawPassword);
             ds.setPing(rs.getString(JdbcDataSource.PING));
             return ds;

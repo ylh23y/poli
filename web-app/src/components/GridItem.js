@@ -9,13 +9,16 @@ import * as Constants from '../api/Constants';
 
 import GridDraggable from './GridDraggable';
 import GridResizable from './GridResizable';
-import Table from './Table';
+import Table from './table/Table';
 import Slicer from './filters/Slicer';
 import ImageBox from './widgets/ImageBox';
 import Iframe from './widgets/Iframe';
-import TextBox from './widgets/TextBox';
+import InnerHtml from './widgets/InnerHtml';
+import DatePicker from './filters/DatePicker';
+import Card from './widgets/Card';
+import Kanban from './Kanban/Kanban';
 
-class GridItem extends React.Component {
+class GridItem extends React.PureComponent {
 
   constructor(props) {
     super(props);
@@ -81,37 +84,7 @@ class GridItem extends React.Component {
       return;
     }
 
-    this.convertCsv(title, columns, queryResultData);
-  }
-
-  convertCsv = (title = 'poli', columns = [], data = []) => {
-    let csvHeader = '';
-    for (let i = 0; i < columns.length; i++) {
-      if (i !== 0) {
-          csvHeader += ',';
-      }
-      csvHeader += columns[i].name;
-    }
-
-    let csvBody = '';
-    for (let i = 0; i < data.length; i++) {
-        const row = Object.values(data[i]);
-        csvBody += row.join(',') + '\r\n';
-    } 
-
-    const csvData = csvHeader + '\r\n' + csvBody;
-    const filename = title + '.csv';
-    const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    if (link.download !== undefined) { 
-      const url = URL.createObjectURL(blob);
-      link.setAttribute("href", url);
-      link.setAttribute("download", filename);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
+    this.props.onComponentCsvExport(title, columns, queryResultData);
   }
 
   removeComponent = (componentId) => {
@@ -184,6 +157,14 @@ class GridItem extends React.Component {
     this.props.onComponentFilterInputChange(componentId, data);
   }
 
+  onDatePickerChange = (componentId, date) => { 
+    const epoch = Math.round((date).getTime());
+    const data = {
+      value: epoch
+    };
+    this.props.onComponentFilterInputChange(componentId, data);
+  }
+
   renderComponentContent = () => {
     const onChartEvents = {
       'click': this.onChartClick,
@@ -199,7 +180,8 @@ class GridItem extends React.Component {
       data = {},
       checkBoxes,
       value,
-      title
+      title,
+      reportType
     } = this.props;
 
     const queryResultData = Util.jsonToArray(queryResult.data);
@@ -211,20 +193,66 @@ class GridItem extends React.Component {
     if (error) {
       return (<div>{error}</div>);
     }
+
+    const isReadOnly = reportType === Constants.CANNED;
     
     let componentItem = (<div></div>);
     if (type === Constants.CHART) {
       if (subType === Constants.TABLE) {
-        const { defaultPageSize } = data;
+        const { 
+          defaultPageSize = 10,
+          showPagination = true,
+          fixedHeader = false
+        } = data;
+
+        let tableHeight = null;
+        if (fixedHeader) {
+          const {
+            height,
+            style = {}
+          } = this.props;
+          const { showTitle = true } = style; 
+          tableHeight = showTitle ? height - 30 : height - 2;
+        }
+
         componentItem = (
           <Table
             data={queryResultData}
             columns={columns}
             defaultPageSize={defaultPageSize}
             drillThrough={drillThrough}
+            showPagination={showPagination}
             onTableTdClick={this.onTableTdClick}
+            height={tableHeight}
           />
         );
+      } else if (subType === Constants.CARD) {
+        const { 
+          fontSize = 16,
+          fontColor = '#000000',
+        } = data;
+        const obj = Util.isArrayEmpty(queryResultData) ? '' : queryResultData[0];
+        const value = Object.values(obj)[0];
+        componentItem = (
+          <Card 
+            fontSize={fontSize} 
+            fontColor={fontColor}
+            value={value}
+          />
+        );
+      } else if (subType === Constants.KANBAN) {
+        const { 
+          groupByField = '',
+          blockTitleField = ''
+        } = data;
+        componentItem = (
+          <Kanban 
+            data={queryResultData} 
+            groupByField={groupByField} 
+            blockTitleField={blockTitleField} 
+          />
+        );
+        
       } else {
         const chartOption = EchartsApi.getChartOption(subType, queryResultData, data, title);
         componentItem = (
@@ -245,18 +273,33 @@ class GridItem extends React.Component {
               id={id} 
               checkBoxes={checkBoxes} 
               onChange={this.onSlicerChange} 
+              readOnly={isReadOnly}
             />
           </div>
         );
       } else if (subType === Constants.SINGLE_VALUE) {
         componentItem = (
           <div className="grid-box-content-panel">
-            <input 
-              className="form-input"
-              type="text"  
-              value={value}
-              onChange={(event) => this.onSingleValueChange(id, event)}
-              className="filter-input" 
+            <div style={{paddingTop: '5px'}}>
+              <input 
+                className="filter-input"
+                type="text"  
+                value={value}
+                onChange={(event) => this.onSingleValueChange(id, event)}
+                readOnly={isReadOnly}
+              />
+            </div>
+          </div>
+        );
+      } else if (subType === Constants.DATE_PICKER) {
+        const date = value ? new Date(parseInt(value, 10)) : new Date();
+        componentItem = (
+          <div className="grid-box-content-panel">
+            <DatePicker 
+              name={id}
+              value={date}
+              onChange={this.onDatePickerChange}
+              readOnly={isReadOnly}
             />
           </div>
         );
@@ -264,10 +307,14 @@ class GridItem extends React.Component {
     } else if (type === Constants.STATIC) {
       if (subType === Constants.IMAGE) {
         const { 
-          src = '' 
+          src = '',
+          isFull = false,
         } = data;
         componentItem = (
-          <ImageBox src={src} />
+          <ImageBox 
+            src={src}
+            isFull={isFull} 
+          />
         );
       } else if (subType === Constants.IFRAME) {
         const {
@@ -284,12 +331,22 @@ class GridItem extends React.Component {
           value = ''
         } = data;
         componentItem = (
-          <TextBox 
+          <Card 
             fontSize={fontSize} 
             fontColor={fontColor}
             value={value}
           />
         );
+      } else if (subType === Constants.HTML) {
+        const { 
+          innerHtml
+        } = data;
+        componentItem = (
+          <InnerHtml 
+            html={innerHtml}
+          />
+        );
+        
       }
     }
     
@@ -304,7 +361,8 @@ class GridItem extends React.Component {
       style = {},
       drillThrough,
       queryResult = {},
-      type
+      type,
+      selectedComponentId
     } = this.props;
 
     const { 
@@ -318,7 +376,7 @@ class GridItem extends React.Component {
     } = style;
 
     let borderStyle;
-    if (isEditMode && (this.state.mode !== '' || this.props.selectedComponentId === id)) {
+    if (isEditMode && (this.state.mode !== '' || selectedComponentId === id)) {
       borderStyle = '2px dashed ' + Constants.COLOR_SLATE;
     } else {
       borderStyle = showBorder ? `2px solid ${borderColor}` : '2px solid transparent';
@@ -382,6 +440,7 @@ class GridItem extends React.Component {
             onMouseMove={this.onMouseMove}
             mode={this.state.mode}
             snapToGrid={this.props.snapToGrid} 
+            isSelected={selectedComponentId === id}
           />
         )}
 
@@ -402,11 +461,11 @@ class GridItem extends React.Component {
           </div>
         )}
 
-        {readModeButtonGroup}
-        
         <div className="grid-box-content" style={contentStyle}>
           {this.renderComponentContent()}
         </div>
+
+        {readModeButtonGroup}
 
         { isEditMode && (
           <GridResizable 

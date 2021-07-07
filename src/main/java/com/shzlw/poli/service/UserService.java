@@ -5,6 +5,8 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.shzlw.poli.dao.UserDao;
 import com.shzlw.poli.model.User;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -15,6 +17,7 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class UserService {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(UserService.class);
     /**
      * Key: Session key
      * Value: User
@@ -40,7 +43,11 @@ public class UserService {
         }
 
         try {
-            User user = SESSION_USER_CACHE.get(sessionKey, () -> userDao.findBySessionKey(sessionKey));
+            User user = SESSION_USER_CACHE.get(sessionKey, () -> {
+                User u = userDao.findBySessionKey(sessionKey);
+                u.setUserAttributes(userDao.findUserAttributes(u.getId()));
+                return u;
+            });
             return user;
         } catch (ExecutionException | CacheLoader.InvalidCacheLoadException e) {
             return null;
@@ -53,7 +60,11 @@ public class UserService {
         }
 
         try {
-            User user = API_KEY_USER_CACHE.get(apiKey, () -> userDao.findByApiKey(apiKey));
+            User user = API_KEY_USER_CACHE.get(apiKey, () -> {
+                User u = userDao.findByApiKey(apiKey);
+                u.setUserAttributes(userDao.findUserAttributes(u.getId()));
+                return u;
+            });
             return user;
         } catch (ExecutionException | CacheLoader.InvalidCacheLoadException e) {
             return null;

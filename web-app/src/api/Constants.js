@@ -8,7 +8,8 @@ export const COMPONENT_TYPES = [STATIC, CHART, FILTER];
 
 export const SLICER = 'slicer';
 export const SINGLE_VALUE= 'single';
-export const FILTER_TYPES = [SLICER, SINGLE_VALUE];
+export const DATE_PICKER = 'date picker';
+export const FILTER_TYPES = [SLICER, SINGLE_VALUE, DATE_PICKER];
 
 export const PIE = 'pie';
 export const TABLE = 'table';
@@ -17,13 +18,16 @@ export const AREA = 'area';
 export const BAR = 'bar';
 export const HEATMAP = 'heatmap';
 export const TREEMAP = 'treemap';
-export const CHART_TYPES = [TABLE, PIE, LINE, BAR, AREA];
+export const FUNNEL = 'funnel';
+export const CARD = 'card';
+export const KANBAN = 'kanban';
+export const CHART_TYPES = [TABLE, PIE, LINE, BAR, AREA, CARD, FUNNEL, TREEMAP, HEATMAP, KANBAN];
 
 export const IMAGE = 'image';
 export const TEXT = 'text';
 export const HTML = 'html';
 export const IFRAME = 'iframe';
-export const STATIC_TYPES = [TEXT, IMAGE, IFRAME];
+export const STATIC_TYPES = [TEXT, IMAGE, IFRAME, HTML];
 
 
 export const DEFAULT_FILTER_VIEW_WIDTH = 200;
@@ -48,3 +52,12 @@ export const ROMA = 'roma';
 export const MACARONS = 'macarons';
 export const SHINE = 'shine';
 export const CHART_COLOR_PLATETTES = [DEFAULT, VINTAGE, ROMA, MACARONS, SHINE];
+
+export const ADHOC = 'adhoc';
+export const CANNED = 'canned';
+
+export const DEFAULT_MIN_COLOR = 'rgba(222, 53, 11, 1)';
+export const DEFAULT_MAX_COLOR = 'rgba(0, 135, 90, 1)';
+
+export const REPORT = 'report';
+

@@ -2,10 +2,11 @@ package com.shzlw.poli.rest;
 
 import com.shzlw.poli.dao.UserDao;
 import com.shzlw.poli.dto.LoginResponse;
+import com.shzlw.poli.model.SharedReport;
 import com.shzlw.poli.model.User;
 import com.shzlw.poli.service.UserService;
 import com.shzlw.poli.util.Constants;
-import com.shzlw.poli.util.PasswordUtil;
+import com.shzlw.poli.util.PasswordUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +30,7 @@ public class AuthWs {
     public static final String INVALID_USERNAME_PASSWORD = "Invalid username or password.";
     public static final String USE_MORE_CHARACTERS = "Use 8 or more characters.";
     public static final String INVALID_API_KEY = "Invalid api key.";
+    public static final String INVALID_SHARE_KEY = "Invalid share key.";
 
     @RequestMapping(value="/login/user", method = RequestMethod.POST)
     @Transactional
@@ -50,6 +52,7 @@ public class AuthWs {
         String oldSessionKey = user.getSessionKey();
         String newSessionKey = getNewSessionKey();
         userDao.updateSessionKey(user.getId(), newSessionKey);
+        user.setUserAttributes(userDao.findUserAttributes(user.getId()));
         userService.newOrUpdateUser(user, oldSessionKey, newSessionKey);
 
         Cookie sessionKeyCookie = new Cookie(Constants.SESSION_KEY, newSessionKey);
@@ -57,7 +60,7 @@ public class AuthWs {
         sessionKeyCookie.setPath("/");
         response.addCookie(sessionKeyCookie);
 
-        return LoginResponse.ofSucess(user.getUsername(), user.getSysRole(), isTempPassword);
+        return LoginResponse.ofSuccess(user.getUsername(), user.getSysRole(), isTempPassword);
     }
 
     @RequestMapping(value="/login/cookie", method= RequestMethod.POST)
@@ -72,8 +75,9 @@ public class AuthWs {
             return LoginResponse.ofError(INVALID_USERNAME_PASSWORD);
         }
 
+        user.setUserAttributes(userDao.findUserAttributes(user.getId()));
         userService.newOrUpdateUser(user, user.getSessionKey(), sessionKey);
-        return LoginResponse.ofSucess(user.getUsername(), user.getSysRole(), false);
+        return LoginResponse.ofSuccess(user.getUsername(), user.getSysRole(), false);
     }
 
     @RequestMapping(value="/login/apikey", method= RequestMethod.POST)
@@ -85,7 +89,19 @@ public class AuthWs {
             return LoginResponse.ofError(INVALID_API_KEY);
         }
 
-        return LoginResponse.ofSucess(user.getUsername(), user.getSysRole(), false);
+        return LoginResponse.ofSuccess(user.getUsername(), user.getSysRole(), false);
+    }
+
+    @RequestMapping(value="/login/sharekey", method= RequestMethod.POST)
+    @Transactional
+    public LoginResponse loginByShareKey(@RequestBody SharedReport sharedReport) {
+        String shareKey = sharedReport.getShareKey();
+        User user = userDao.findByShareKey(shareKey);
+        if (user == null) {
+            return LoginResponse.ofError(INVALID_SHARE_KEY);
+        }
+
+        return LoginResponse.ofSuccess(user.getUsername(), user.getSysRole(), false);
     }
 
     @RequestMapping(value="/logout", method= RequestMethod.GET)
@@ -126,12 +142,12 @@ public class AuthWs {
     public ResponseEntity<String> generateApiKey(@CookieValue(value = Constants.SESSION_KEY, defaultValue = "") String sessionKey) {
         User user = userDao.findAccountBySessionKey(sessionKey);
         userService.invalidateApiKeyUserCache(user.getApiKey());
-        String apiKey = Constants.API_KEY_PREFIX + PasswordUtil.getUniqueId();
+        String apiKey = Constants.API_KEY_PREFIX + PasswordUtils.getUniqueId();
         userDao.updateApiKey(user.getId(), apiKey);
         return new ResponseEntity<>(apiKey, HttpStatus.OK);
     }
 
     private static String getNewSessionKey() {
-        return Constants.SESSION_KEY_PREFIX + PasswordUtil.getUniqueId();
+        return Constants.SESSION_KEY_PREFIX + PasswordUtils.getUniqueId();
     }
 }

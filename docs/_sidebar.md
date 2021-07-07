@@ -2,7 +2,9 @@
 
   - [Installation](installation.md)
   - [Quick Start](quick-start.md)
-  
+  - [Configuration](configuration.md)
+  - [Upgrade](upgrade.md)
+
 - Basic Concepts
 
   - [Data Source](data-source.md)
@@ -13,3 +15,7 @@
 - Development
 
   - [Build](build.md)
+
+- Release
+
+  - [Change logs](change-logs.md)
